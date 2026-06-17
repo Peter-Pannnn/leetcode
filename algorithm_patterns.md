@@ -7,6 +7,8 @@
 - `sliding_win`：滑动窗口
 - `substring`：前缀和与子数组统计
 - `array`：数组基础、区间、原地操作、动态规划
+- `matrix`：矩阵模拟、原地标记、旋转与遍历
+- `link`：链表指针、反转、快慢指针
 
 ## 一、哈希表 hashmap
 
@@ -804,7 +806,462 @@ nums[0:x].reverse()
 
 不适合用于原地反转原数组的一段，因为切片会创建新列表，`reverse()` 只会反转这个临时列表。
 
-## 六、刷题时如何判断用哪类方法
+## 六、矩阵 matrix
+
+矩阵题常见套路：
+
+- 用行列下标模拟移动过程
+- 维护上下左右边界
+- 使用第一行、第一列作为标记数组
+- 原地交换元素，避免额外矩阵
+- 明确 `m = len(matrix)`，`n = len(matrix[0])`
+
+### 1. 矩阵置零：`matrix/73.py`
+
+题目特点：
+
+如果某个位置是 `0`，就把它所在的整行和整列都置为 `0`，要求原地操作。
+
+三种思路：
+
+```text
+O(mn) 空间：复制原矩阵，再根据原矩阵的 0 修改 matrix
+O(m+n) 空间：用 rows 和 cols 记录哪些行列需要置零
+O(1) 空间：用第一行和第一列作为标记数组
+```
+
+最优思路：
+
+用 `matrix[i][0]` 标记第 `i` 行是否需要置零，用 `matrix[0][j]` 标记第 `j` 列是否需要置零。
+
+第一行和第一列本身也可能有 `0`，所以要额外记录：
+
+```python
+first_row_zero = False
+first_col_zero = False
+```
+
+模板：
+
+```python
+m = len(matrix)
+n = len(matrix[0])
+
+first_row_zero = any(matrix[0][j] == 0 for j in range(n))
+first_col_zero = any(matrix[i][0] == 0 for i in range(m))
+
+for i in range(1, m):
+    for j in range(1, n):
+        if matrix[i][j] == 0:
+            matrix[i][0] = 0
+            matrix[0][j] = 0
+
+for i in range(1, m):
+    for j in range(1, n):
+        if matrix[i][0] == 0 or matrix[0][j] == 0:
+            matrix[i][j] = 0
+
+if first_row_zero:
+    for j in range(n):
+        matrix[0][j] = 0
+
+if first_col_zero:
+    for i in range(m):
+        matrix[i][0] = 0
+```
+
+复杂度：
+
+```text
+时间复杂度：O(mn)
+空间复杂度：O(1)
+```
+
+### 2. 螺旋矩阵：`matrix/54.py`
+
+题目特点：
+
+按照顺时针螺旋顺序返回矩阵所有元素。
+
+核心思路：
+
+维护四个边界：
+
+```python
+top = 0
+bottom = len(matrix) - 1
+left = 0
+right = len(matrix[0]) - 1
+```
+
+每一圈按四个方向走：
+
+```text
+1. 从左到右走 top 行
+2. 从上到下走 right 列
+3. 从右到左走 bottom 行
+4. 从下到上走 left 列
+```
+
+走完一条边，就收缩对应边界。
+
+模板：
+
+```python
+res = []
+top = 0
+bottom = len(matrix) - 1
+left = 0
+right = len(matrix[0]) - 1
+
+while top <= bottom and left <= right:
+    for j in range(left, right + 1):
+        res.append(matrix[top][j])
+    top += 1
+
+    for i in range(top, bottom + 1):
+        res.append(matrix[i][right])
+    right -= 1
+
+    if top <= bottom:
+        for j in range(right, left - 1, -1):
+            res.append(matrix[bottom][j])
+        bottom -= 1
+
+    if left <= right:
+        for i in range(bottom, top - 1, -1):
+            res.append(matrix[i][left])
+        left += 1
+
+return res
+```
+
+复杂度：
+
+```text
+时间复杂度：O(mn)
+空间复杂度：O(1)
+```
+
+不计算返回结果。
+
+### 3. 旋转图像：`matrix/48.py`
+
+题目特点：
+
+给定 `n x n` 矩阵，原地顺时针旋转 `90` 度。
+
+核心思路：
+
+```text
+先上下翻转，再沿主对角线翻转
+```
+
+位置变化：
+
+```text
+matrix[i][j] -> matrix[j][n - 1 - i]
+```
+
+上下翻转后：
+
+```text
+matrix[i][j] -> matrix[n - 1 - i][j]
+```
+
+再沿主对角线翻转：
+
+```text
+matrix[n - 1 - i][j] -> matrix[j][n - 1 - i]
+```
+
+刚好等于顺时针旋转后的目标位置。
+
+模板：
+
+```python
+n = len(matrix)
+
+for i in range(n // 2):
+    matrix[i], matrix[n - 1 - i] = matrix[n - 1 - i], matrix[i]
+
+for i in range(n):
+    for j in range(i + 1, n):
+        matrix[i][j], matrix[j][i] = matrix[j][i], matrix[i][j]
+```
+
+复杂度：
+
+```text
+时间复杂度：O(n^2)
+空间复杂度：O(1)
+```
+
+## 七、链表 link
+
+链表题常见套路：
+
+- 使用虚拟头节点简化边界
+- 用 `prev`、`cur`、`next` 反转指针
+- 快慢指针找中点或判断环
+- 双指针同步移动消除长度差
+- 比较节点是否相同，要比较节点对象，不是节点值
+
+### 1. 合并两个有序链表：`link/21.py`
+
+题目特点：
+
+给定两个升序链表，合并成一个新的升序链表。
+
+核心思路：
+
+使用虚拟头节点 `dummy`，每次把较小节点接到结果链表后面。
+
+模板：
+
+```python
+dummy = ListNode()
+cur = dummy
+
+while list1 and list2:
+    if list1.val <= list2.val:
+        cur.next = list1
+        list1 = list1.next
+    else:
+        cur.next = list2
+        list2 = list2.next
+    cur = cur.next
+
+cur.next = list1 if list1 else list2
+return dummy.next
+```
+
+复杂度：
+
+```text
+时间复杂度：O(m+n)
+空间复杂度：O(1)
+```
+
+### 2. 反转链表：`link/206.py`
+
+题目特点：
+
+把单链表整体反转。
+
+核心思路：
+
+遍历链表，用 `prev` 保存已经反转好的前半部分，用 `cur` 指向当前节点。
+
+每次需要先保存下一个节点：
+
+```python
+next_node = cur.next
+```
+
+然后反转当前节点指向：
+
+```python
+cur.next = prev
+```
+
+模板：
+
+```python
+prev = None
+cur = head
+
+while cur:
+    next_node = cur.next
+    cur.next = prev
+    prev = cur
+    cur = next_node
+
+return prev
+```
+
+复杂度：
+
+```text
+时间复杂度：O(n)
+空间复杂度：O(1)
+```
+
+### 3. 相交链表：`link/160.py`
+
+题目特点：
+
+给定两个链表头节点，返回它们相交的第一个节点。如果不相交，返回 `None`。
+
+核心思路一：长度对齐。
+
+先分别计算两个链表长度，让长链表先走长度差，然后两个指针一起走。
+
+模板：
+
+```python
+len_a = get_len(headA)
+len_b = get_len(headB)
+
+while len_a > len_b:
+    headA = headA.next
+    len_a -= 1
+
+while len_b > len_a:
+    headB = headB.next
+    len_b -= 1
+
+while headA and headB:
+    if headA == headB:
+        return headA
+    headA = headA.next
+    headB = headB.next
+
+return None
+```
+
+核心思路二：双指针换头。
+
+```python
+pA = headA
+pB = headB
+
+while pA != pB:
+    pA = pA.next if pA else headB
+    pB = pB.next if pB else headA
+
+return pA
+```
+
+两个指针都走 `a + b` 的长度，如果有交点会在交点相遇，否则一起变成 `None`。
+
+复杂度：
+
+```text
+时间复杂度：O(m+n)
+空间复杂度：O(1)
+```
+
+### 4. 环形链表与入环点：`link/141.py`
+
+题目特点：
+
+判断链表是否有环；进一步可以返回入环的第一个节点。
+
+判断是否有环：
+
+使用快慢指针。`slow` 每次走一步，`fast` 每次走两步。
+
+```python
+slow = head
+fast = head
+
+while fast and fast.next:
+    slow = slow.next
+    fast = fast.next.next
+
+    if slow == fast:
+        return True
+
+return False
+```
+
+寻找入环点：
+
+快慢指针相遇后，一个指针从 `head` 出发，另一个从相遇点出发，每次都走一步，再次相遇的位置就是入环点。
+
+```python
+slow = head
+fast = head
+
+while fast and fast.next:
+    slow = slow.next
+    fast = fast.next.next
+
+    if slow == fast:
+        p1 = head
+        p2 = slow
+
+        while p1 != p2:
+            p1 = p1.next
+            p2 = p2.next
+
+        return p1
+
+return None
+```
+
+复杂度：
+
+```text
+时间复杂度：O(n)
+空间复杂度：O(1)
+```
+
+### 5. 回文链表：`link/234.py`
+
+题目特点：
+
+判断链表从前往后和从后往前读是否一样，进阶要求 `O(1)` 空间。
+
+核心思路：
+
+```text
+快慢指针找中点 -> 反转后半部分 -> 前半部分和后半部分逐个比较
+```
+
+模板：
+
+```python
+slow = head
+fast = head
+
+while fast and fast.next:
+    slow = slow.next
+    fast = fast.next.next
+
+if fast:
+    slow = slow.next
+
+prev = None
+cur = slow
+while cur:
+    next_node = cur.next
+    cur.next = prev
+    prev = cur
+    cur = next_node
+
+p1 = head
+p2 = prev
+
+while p2:
+    if p1.val != p2.val:
+        return False
+    p1 = p1.next
+    p2 = p2.next
+
+return True
+```
+
+注意：
+
+如果链表长度为奇数，可以跳过中间节点：
+
+```python
+if fast:
+    slow = slow.next
+```
+
+不跳过也能判断，因为中间节点会和自己比较，但跳过更清晰。
+
+复杂度：
+
+```text
+时间复杂度：O(n)
+空间复杂度：O(1)
+```
+
+## 八、刷题时如何判断用哪类方法
 
 | 题目关键词 | 优先考虑 |
 |---|---|
@@ -822,8 +1279,15 @@ nums[0:x].reverse()
 | 区间合并 | 按左端点排序 |
 | 最大连续和 | 动态规划 |
 | 数组轮转 | 三次反转 |
+| 矩阵顺时针遍历 | 上下左右边界模拟 |
+| 矩阵原地修改 | 第一行第一列做标记 |
+| 矩阵旋转 | 翻转 + 转置 |
+| 链表合并/拼接 | 虚拟头节点 |
+| 链表反转 | `prev` / `cur` / `next` 三指针 |
+| 链表找中点或判环 | 快慢指针 |
+| 两链表相交 | 长度对齐或双指针换头 |
 
-## 七、复杂度速查
+## 九、复杂度速查
 
 | 方法 | 常见时间复杂度 | 常见空间复杂度 |
 |---|---|---|
@@ -835,4 +1299,7 @@ nums[0:x].reverse()
 | 前缀和 + 哈希表 | `O(n)` | `O(n)` |
 | 区间排序合并 | `O(n log n)` | `O(n)` |
 | Kadane 动态规划 | `O(n)` | `O(1)` |
-
+| 矩阵边界模拟 | `O(mn)` | `O(1)` 不算返回结果 |
+| 矩阵原地标记 | `O(mn)` | `O(1)` |
+| 链表一次遍历 | `O(n)` | `O(1)` |
+| 链表快慢指针 | `O(n)` | `O(1)` |
