@@ -1006,6 +1006,7 @@ for i in range(n):
 - 快慢指针找中点或判断环
 - 双指针同步移动消除长度差
 - 比较节点是否相同，要比较节点对象，不是节点值
+- 哈希表 + 双向链表维护访问顺序
 
 ### 1. 合并两个有序链表：`link/21.py`
 
@@ -1261,6 +1262,122 @@ if fast:
 空间复杂度：O(1)
 ```
 
+### 6. LRU 缓存：`link/146.py`
+
+题目特点：
+
+设计最近最少使用缓存，要求 `get` 和 `put` 平均时间复杂度都是 `O(1)`。
+
+核心思路：
+
+```text
+哈希表 + 双向链表
+```
+
+哈希表负责通过 `key` 在 `O(1)` 时间内找到节点：
+
+```python
+cache = {}  # key -> Node
+```
+
+双向链表负责维护使用顺序：
+
+```text
+head <-> 最近使用 ... 最久未使用 <-> tail
+```
+
+其中：
+
+```text
+head 后面的节点是最近使用
+tail 前面的节点是最久未使用
+```
+
+节点需要保存 `key`，因为淘汰尾部节点时，要从哈希表中删除对应 key。
+
+常用辅助操作：
+
+```python
+def _remove(node):
+    node.prev.next = node.next
+    node.next.prev = node.prev
+
+
+def _add_to_head(node):
+    node.prev = head
+    node.next = head.next
+    head.next.prev = node
+    head.next = node
+```
+
+`get` 思路：
+
+```text
+1. key 不存在，返回 -1
+2. key 存在，取出节点
+3. 把节点移动到头部，表示最近使用
+4. 返回节点 value
+```
+
+`put` 思路：
+
+```text
+1. key 已存在：更新 value，并移动到头部
+2. key 不存在：新建节点，加入哈希表和链表头部
+3. 如果超过容量：删除 tail 前面的最久未使用节点，并从哈希表删除
+```
+
+模板：
+
+```python
+class Node:
+    def __init__(self, key=0, value=0):
+        self.key = key
+        self.value = value
+        self.prev = None
+        self.next = None
+
+
+class LRUCache:
+    def __init__(self, capacity: int):
+        self.capacity = capacity
+        self.cache = {}
+        self.head = Node()
+        self.tail = Node()
+        self.head.next = self.tail
+        self.tail.prev = self.head
+
+    def get(self, key: int) -> int:
+        if key not in self.cache:
+            return -1
+        node = self.cache[key]
+        self._move_to_head(node)
+        return node.value
+
+    def put(self, key: int, value: int) -> None:
+        if key in self.cache:
+            node = self.cache[key]
+            node.value = value
+            self._move_to_head(node)
+            return
+
+        node = Node(key, value)
+        self.cache[key] = node
+        self._add_to_head(node)
+
+        if len(self.cache) > self.capacity:
+            removed = self._remove_tail()
+            del self.cache[removed.key]
+```
+
+复杂度：
+
+```text
+get 时间复杂度：O(1)
+put 时间复杂度：O(1)
+空间复杂度：O(capacity)
+```
+
 ## 八、刷题时如何判断用哪类方法
 
 | 题目关键词 | 优先考虑 |
@@ -1286,6 +1403,7 @@ if fast:
 | 链表反转 | `prev` / `cur` / `next` 三指针 |
 | 链表找中点或判环 | 快慢指针 |
 | 两链表相交 | 长度对齐或双指针换头 |
+| LRU 缓存 | 哈希表 + 双向链表 |
 
 ## 九、复杂度速查
 
@@ -1303,3 +1421,4 @@ if fast:
 | 矩阵原地标记 | `O(mn)` | `O(1)` |
 | 链表一次遍历 | `O(n)` | `O(1)` |
 | 链表快慢指针 | `O(n)` | `O(1)` |
+| LRU Cache | `O(1)` get / `O(1)` put | `O(capacity)` |
