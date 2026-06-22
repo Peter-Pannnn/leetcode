@@ -9,6 +9,8 @@
 - `array`：数组基础、区间、原地操作、动态规划
 - `matrix`：矩阵模拟、原地标记、旋转与遍历
 - `link`：链表指针、反转、快慢指针
+- `bitree`：二叉树递归、层序遍历、二叉搜索树
+- `graph`：图搜索、网格 DFS/BFS、连通块
 
 ## 一、哈希表 hashmap
 
@@ -1378,7 +1380,430 @@ put 时间复杂度：O(1)
 空间复杂度：O(capacity)
 ```
 
-## 八、刷题时如何判断用哪类方法
+## 八、二叉树 bitree
+
+二叉树题常见套路：
+
+- 递归处理左右子树
+- 前序、中序、后序遍历
+- 层序遍历使用队列
+- 自底向上返回高度或状态
+- 二叉搜索树利用中序有序性质
+
+常见递归结构：
+
+```python
+def dfs(root):
+    if not root:
+        return
+
+    dfs(root.left)
+    dfs(root.right)
+```
+
+### 1. 二叉树中序遍历：`bitree/94.py`
+
+题目特点：
+
+返回二叉树的中序遍历结果。
+
+核心思路：
+
+中序遍历顺序是：
+
+```text
+左子树 -> 当前节点 -> 右子树
+```
+
+模板：
+
+```python
+res = []
+
+def inorder(root):
+    if not root:
+        return
+    inorder(root.left)
+    res.append(root.val)
+    inorder(root.right)
+
+inorder(root)
+return res
+```
+
+复杂度：
+
+```text
+时间复杂度：O(n)
+空间复杂度：O(h)
+```
+
+其中 `h` 是树高。
+
+### 2. 对称二叉树：`bitree/101.py`
+
+题目特点：
+
+判断一棵二叉树是否关于中轴线对称。
+
+核心思路：
+
+不要分别判断左右子树是否各自对称，而是判断左右子树是否互为镜像。
+
+镜像关系：
+
+```text
+left.left  对应  right.right
+left.right 对应  right.left
+```
+
+模板：
+
+```python
+def compare(left, right):
+    if not left and not right:
+        return True
+    if not left or not right:
+        return False
+
+    return (
+        left.val == right.val
+        and compare(left.left, right.right)
+        and compare(left.right, right.left)
+    )
+
+return compare(root.left, root.right)
+```
+
+复杂度：
+
+```text
+时间复杂度：O(n)
+空间复杂度：O(h)
+```
+
+### 3. 二叉树层序遍历：`bitree/102.py`
+
+题目特点：
+
+逐层从左到右返回节点值。
+
+核心思路：
+
+层序遍历是 BFS，用队列保存当前待访问节点。
+
+每一轮先记录当前层节点数：
+
+```python
+size = len(queue)
+```
+
+然后只处理这 `size` 个节点。它们的孩子加入队列后，属于下一层。
+
+模板：
+
+```python
+from collections import deque
+
+res = []
+queue = deque([root])
+
+while queue:
+    size = len(queue)
+    level = []
+
+    for _ in range(size):
+        node = queue.popleft()
+        level.append(node.val)
+
+        if node.left:
+            queue.append(node.left)
+        if node.right:
+            queue.append(node.right)
+
+    res.append(level)
+
+return res
+```
+
+复杂度：
+
+```text
+时间复杂度：O(n)
+空间复杂度：O(n)
+```
+
+### 4. 二叉树最大深度：`bitree/104.py`
+
+题目特点：
+
+求根节点到最远叶子节点的节点数。
+
+核心思路：
+
+递归求左右子树深度，当前节点深度等于较大值加 `1`。
+
+模板：
+
+```python
+if not root:
+    return 0
+
+left = maxDepth(root.left)
+right = maxDepth(root.right)
+return max(left, right) + 1
+```
+
+复杂度：
+
+```text
+时间复杂度：O(n)
+空间复杂度：O(h)
+```
+
+### 5. 有序数组转换为平衡 BST：`bitree/108.py`
+
+题目特点：
+
+给定升序数组，构造一棵高度平衡的二叉搜索树。
+
+核心思路：
+
+每次选择当前区间的中点作为根节点：
+
+```text
+左半部分构造左子树
+右半部分构造右子树
+```
+
+这样左右子树元素数量尽量接近，树高也保持平衡。
+
+模板：
+
+```python
+def build(left, right):
+    if left > right:
+        return None
+
+    mid = (left + right) // 2
+    root = TreeNode(nums[mid])
+    root.left = build(left, mid - 1)
+    root.right = build(mid + 1, right)
+    return root
+
+return build(0, len(nums) - 1)
+```
+
+复杂度：
+
+```text
+时间复杂度：O(n)
+空间复杂度：O(log n)
+```
+
+### 6. 翻转二叉树：`bitree/226.py`
+
+题目特点：
+
+交换每个节点的左右子树。
+
+核心思路：
+
+递归处理左右子树，然后交换当前节点的左右孩子。
+
+模板：
+
+```python
+if not root:
+    return None
+
+invertTree(root.left)
+invertTree(root.right)
+root.left, root.right = root.right, root.left
+return root
+```
+
+复杂度：
+
+```text
+时间复杂度：O(n)
+空间复杂度：O(h)
+```
+
+### 7. 二叉搜索树第 K 小元素：`bitree/230.py`
+
+题目特点：
+
+在 BST 中找第 `k` 小的元素。
+
+核心思路：
+
+二叉搜索树的中序遍历结果是升序：
+
+```text
+第 k 小 = 中序遍历第 k 个节点
+```
+
+模板：
+
+```python
+res = []
+
+def inorder(root):
+    if not root:
+        return
+    inorder(root.left)
+    res.append(root.val)
+    inorder(root.right)
+
+inorder(root)
+return res[k - 1]
+```
+
+优化方向：
+
+中序遍历时用计数器，访问到第 `k` 个节点后提前停止。
+
+复杂度：
+
+```text
+时间复杂度：O(n)
+空间复杂度：O(h) 或 O(n)
+```
+
+如果保存完整中序数组，额外空间是 `O(n)`。
+
+### 8. 二叉树的直径：`bitree/543.py`
+
+题目特点：
+
+求任意两个节点之间最长路径的边数，路径不一定经过根节点。
+
+核心思路：
+
+对每个节点，经过它的最长路径是：
+
+```text
+左子树最大深度 + 右子树最大深度
+```
+
+DFS 返回当前节点向下的最大深度，同时用全局答案记录最大直径。
+
+模板：
+
+```python
+ans = 0
+
+def depth(root):
+    nonlocal ans
+
+    if not root:
+        return 0
+
+    left = depth(root.left)
+    right = depth(root.right)
+
+    ans = max(ans, left + right)
+    return max(left, right) + 1
+
+depth(root)
+return ans
+```
+
+复杂度：
+
+```text
+时间复杂度：O(n)
+空间复杂度：O(h)
+```
+
+## 九、图 graph
+
+图题常见套路：
+
+- DFS 一条路走到底
+- BFS 一层一层向外扩散
+- 普通图通常需要 `visited`
+- 网格图可以把访问过的格子直接改值
+- 求岛屿数量、本质是求连通块数量
+
+二维网格常用方向数组：
+
+```python
+dirs = [(-1, 0), (1, 0), (0, -1), (0, 1)]
+```
+
+### 1. 岛屿数量：`graph/200.py`
+
+题目特点：
+
+给定由 `'1'` 和 `'0'` 组成的网格，统计由上下左右相邻陆地组成的岛屿数量。
+
+核心思路：
+
+遍历整个网格。每遇到一个新的 `'1'`，说明发现一座新岛：
+
+```text
+岛屿数量 +1
+从这个位置开始 DFS/BFS，把整座岛都标记为已访问
+```
+
+标记方式：
+
+```python
+grid[i][j] = "0"
+```
+
+相当于把已经访问过的陆地淹掉，避免重复统计。
+
+DFS 模板：
+
+```python
+def dfs(i, j):
+    if i < 0 or i >= m or j < 0 or j >= n:
+        return
+    if grid[i][j] == "0":
+        return
+
+    grid[i][j] = "0"
+
+    dfs(i - 1, j)
+    dfs(i + 1, j)
+    dfs(i, j - 1)
+    dfs(i, j + 1)
+```
+
+外层遍历：
+
+```python
+count = 0
+
+for i in range(m):
+    for j in range(n):
+        if grid[i][j] == "1":
+            count += 1
+            dfs(i, j)
+
+return count
+```
+
+关键边界：
+
+```text
+i 是行下标，用 m 判断
+j 是列下标，用 n 判断
+```
+
+复杂度：
+
+```text
+时间复杂度：O(mn)
+空间复杂度：O(mn)
+```
+
+最坏情况下整张网格都是陆地，递归栈可能达到 `O(mn)`。
+
+## 十、刷题时如何判断用哪类方法
 
 | 题目关键词 | 优先考虑 |
 |---|---|
@@ -1404,8 +1829,14 @@ put 时间复杂度：O(1)
 | 链表找中点或判环 | 快慢指针 |
 | 两链表相交 | 长度对齐或双指针换头 |
 | LRU 缓存 | 哈希表 + 双向链表 |
+| 二叉树遍历 | DFS 前序/中序/后序 |
+| 二叉树逐层访问 | BFS + `deque` |
+| 二叉树高度/直径/平衡 | 后序 DFS |
+| 二叉搜索树第 k 小 | 中序遍历 |
+| 有序数组构造平衡 BST | 取中点递归 |
+| 网格连通块/岛屿数量 | DFS/BFS + visited |
 
-## 九、复杂度速查
+## 十一、复杂度速查
 
 | 方法 | 常见时间复杂度 | 常见空间复杂度 |
 |---|---|---|
@@ -1422,3 +1853,7 @@ put 时间复杂度：O(1)
 | 链表一次遍历 | `O(n)` | `O(1)` |
 | 链表快慢指针 | `O(n)` | `O(1)` |
 | LRU Cache | `O(1)` get / `O(1)` put | `O(capacity)` |
+| 二叉树 DFS | `O(n)` | `O(h)` |
+| 二叉树 BFS | `O(n)` | `O(n)` |
+| BST 中序遍历 | `O(n)` | `O(h)` 到 `O(n)` |
+| 网格 DFS/BFS | `O(mn)` | `O(mn)` |
