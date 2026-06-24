@@ -11,6 +11,10 @@
 - `link`：链表指针、反转、快慢指针
 - `bitree`：二叉树递归、层序遍历、二叉搜索树
 - `graph`：图搜索、网格 DFS/BFS、连通块
+- `backtrack`：回溯搜索、排列、子集
+- `bisearch`：二分查找、边界二分、旋转数组
+- `stack`：栈模拟、辅助栈、括号嵌套
+- `heap`：堆、Top K、小顶堆
 
 ## 一、哈希表 hashmap
 
@@ -1803,7 +1807,495 @@ j 是列下标，用 n 判断
 
 最坏情况下整张网格都是陆地，递归栈可能达到 `O(mn)`。
 
-## 十、刷题时如何判断用哪类方法
+### 2. 腐烂的橘子：`graph/994.py`
+
+题目特点：
+
+多个腐烂橘子会同时向上下左右扩散，要求所有新鲜橘子腐烂的最少分钟数。
+
+核心思路：
+
+这是多源 BFS。先把所有初始腐烂橘子加入同一个队列，并统计新鲜橘子数量：
+
+```python
+queue = deque()
+fresh = 0
+```
+
+每一轮 BFS 表示经过 `1` 分钟。当前队列中的节点是这一分钟同时扩散的腐烂橘子：
+
+```python
+size = len(queue)
+
+for _ in range(size):
+    i, j = queue.popleft()
+```
+
+新腐烂的橘子加入队列，下一分钟继续扩散。
+
+关键点：
+
+```text
+所有起点先入队
+每轮处理当前队列长度 size 个节点
+每腐烂一个新鲜橘子，fresh -= 1
+```
+
+结束判断：
+
+```text
+如果 fresh == 0，返回分钟数
+如果 BFS 结束仍有 fresh，返回 -1
+```
+
+复杂度：
+
+```text
+时间复杂度：O(mn)
+空间复杂度：O(mn)
+```
+
+## 十、回溯 backtrack
+
+回溯题常见套路：
+
+- 枚举所有可能选择
+- 用 `path` 保存当前路径
+- 用递归进入下一层选择
+- 递归返回后撤销选择
+- 排列问题常用 `used`
+- 组合/子集问题常用 `start`
+
+基本结构：
+
+```python
+def backtrack(...):
+    if 到达结束条件:
+        res.append(path[:])
+        return
+
+    for 选择 in 选择列表:
+        做选择
+        backtrack(...)
+        撤销选择
+```
+
+### 1. 全排列：`backtrack/46.py`
+
+题目特点：
+
+给定不含重复数字的数组，返回所有可能的排列。
+
+核心思路：
+
+每个位置都可以选择一个还没用过的数字。用 `used[i]` 记录 `nums[i]` 是否已经放进当前排列。
+
+模板：
+
+```python
+res = []
+path = []
+used = [False] * len(nums)
+
+def backtrack():
+    if len(path) == len(nums):
+        res.append(path[:])
+        return
+
+    for i in range(len(nums)):
+        if used[i]:
+            continue
+
+        path.append(nums[i])
+        used[i] = True
+        backtrack()
+        path.pop()
+        used[i] = False
+```
+
+复杂度：
+
+```text
+时间复杂度：O(n * n!)
+空间复杂度：O(n)
+```
+
+不计算返回结果。
+
+### 2. 子集：`backtrack/78.py`
+
+题目特点：
+
+给定不含重复数字的数组，返回所有可能子集。
+
+核心思路：
+
+每一个 `path` 都是合法子集，所以进入递归时先收集当前路径。用 `start` 控制下一次只能从后面选择，避免重复子集。
+
+模板：
+
+```python
+res = []
+path = []
+
+def backtrack(start):
+    res.append(path[:])
+
+    for i in range(start, len(nums)):
+        path.append(nums[i])
+        backtrack(i + 1)
+        path.pop()
+```
+
+复杂度：
+
+```text
+时间复杂度：O(n * 2^n)
+空间复杂度：O(n)
+```
+
+不计算返回结果。
+
+## 十一、二分查找 bisearch
+
+二分题常见套路：
+
+- 有序数组查找
+- 找第一个满足条件的位置
+- 找左边界和右边界
+- 把二维矩阵映射成一维数组
+- 旋转有序数组先判断有序区间或先找旋转点
+
+普通二分模板：
+
+```python
+left = 0
+right = len(nums) - 1
+
+while left <= right:
+    mid = (left + right) // 2
+
+    if nums[mid] == target:
+        return mid
+    elif nums[mid] < target:
+        left = mid + 1
+    else:
+        right = mid - 1
+```
+
+### 1. 搜索旋转排序数组：`bisearch/33.py`
+
+题目特点：
+
+升序数组在某个位置旋转后，查找 `target` 下标。
+
+核心思路：
+
+可以先找旋转点 `k`，也就是最小值下标。旋转后数组由两段升序区间组成：
+
+```text
+[0, k - 1]
+[k, n - 1]
+```
+
+找旋转点：
+
+```python
+while left < right:
+    mid = (left + right) // 2
+
+    if nums[mid] > nums[right]:
+        left = mid + 1
+    else:
+        right = mid
+```
+
+然后判断 `target` 落在哪一段，对对应区间做普通二分。
+
+复杂度：
+
+```text
+时间复杂度：O(log n)
+空间复杂度：O(1)
+```
+
+### 2. 在排序数组中查找元素的第一个和最后一个位置：`bisearch/34.py`
+
+题目特点：
+
+给定非递减数组，返回 `target` 的起始和结束下标。
+
+核心思路：
+
+用边界二分：
+
+```text
+左边界 = 第一个 >= target 的位置
+右边界 = 第一个 >= target + 1 的位置 - 1
+```
+
+`lower_bound` 模板：
+
+```python
+def lower_bound(x):
+    left = 0
+    right = len(nums) - 1
+
+    while left <= right:
+        mid = (left + right) // 2
+
+        if nums[mid] >= x:
+            right = mid - 1
+        else:
+            left = mid + 1
+
+    return left
+```
+
+判断不存在：
+
+```python
+if left == len(nums) or nums[left] != target:
+    return [-1, -1]
+```
+
+复杂度：
+
+```text
+时间复杂度：O(log n)
+空间复杂度：O(1)
+```
+
+### 3. 搜索二维矩阵：`bisearch/74.py`
+
+题目特点：
+
+矩阵每行递增，且下一行第一个数大于上一行最后一个数。
+
+核心思路：
+
+把 `m x n` 矩阵看成一个长度为 `m * n` 的升序数组，不需要真的展开。
+
+一维下标转二维下标：
+
+```python
+i = mid // n
+j = mid % n
+```
+
+二分范围：
+
+```python
+left = 0
+right = m * n - 1
+```
+
+复杂度：
+
+```text
+时间复杂度：O(log(mn))
+空间复杂度：O(1)
+```
+
+## 十二、栈 stack
+
+栈题常见套路：
+
+- 后进先出
+- 用辅助栈维护额外状态
+- 处理括号或嵌套结构
+- 遇到开始符号入栈，遇到结束符号出栈
+
+常用操作：
+
+```python
+stack.append(x)
+stack.pop()
+stack[-1]
+```
+
+### 1. 最小栈：`stack/155.py`
+
+题目特点：
+
+设计一个栈，要求 `push`、`pop`、`top`、`getMin` 都是 `O(1)`。
+
+核心思路：
+
+维护两个栈：
+
+```text
+stack：正常保存元素
+min_stack：同步保存每一层对应的最小值
+```
+
+每次入栈：
+
+```python
+stack.append(value)
+min_stack.append(min(value, min_stack[-1]))
+```
+
+每次出栈时两个栈同步弹出。当前最小值就是：
+
+```python
+min_stack[-1]
+```
+
+复杂度：
+
+```text
+每个操作时间复杂度：O(1)
+空间复杂度：O(n)
+```
+
+### 2. 字符串解码：`stack/394.py`
+
+题目特点：
+
+解码形如 `k[encoded_string]` 的字符串，括号可能嵌套。
+
+核心思路：
+
+维护当前数字 `num`、当前字符串 `cur` 和栈 `stack`。
+
+遍历字符：
+
+```text
+数字：累积 num
+[：把当前 cur 和 num 入栈，开始新一层
+字母：加入 cur
+]：弹出上一层状态，拼接 prev + cur * repeat
+```
+
+模板：
+
+```python
+stack = []
+cur = ""
+num = 0
+
+for ch in s:
+    if ch.isdigit():
+        num = num * 10 + int(ch)
+    elif ch == "[":
+        stack.append((cur, num))
+        cur = ""
+        num = 0
+    elif ch == "]":
+        prev, repeat = stack.pop()
+        cur = prev + cur * repeat
+    else:
+        cur += ch
+```
+
+复杂度：
+
+```text
+时间复杂度：O(输出字符串长度)
+空间复杂度：O(输出字符串长度 + 嵌套深度)
+```
+
+## 十三、堆 heap
+
+堆题常见套路：
+
+- Top K 问题
+- 维护大小为 `k` 的小顶堆
+- Python `heapq` 默认是小顶堆
+- 堆里存元组时按元组字典序比较
+
+常用操作：
+
+```python
+heapq.heappush(heap, x)
+heapq.heappop(heap)
+heap[0]
+```
+
+### 1. 数组中的第 K 个最大元素：`heap/215.py`
+
+题目特点：
+
+返回排序后的第 `k` 个最大元素，重复元素正常参与排名。
+
+核心思路：
+
+维护大小为 `k` 的小顶堆：
+
+```text
+堆里始终保存当前见过的最大的 k 个数
+堆顶就是第 k 大
+```
+
+模板：
+
+```python
+heap = []
+
+for num in nums:
+    heapq.heappush(heap, num)
+
+    if len(heap) > k:
+        heapq.heappop(heap)
+
+return heap[0]
+```
+
+复杂度：
+
+```text
+时间复杂度：O(n log k)
+空间复杂度：O(k)
+```
+
+如果严格要求平均 `O(n)`，可使用快速选择。
+
+### 2. 前 K 个高频元素：`heap/347.py`
+
+题目特点：
+
+返回数组中出现频率前 `k` 高的元素，答案顺序任意。
+
+核心思路：
+
+先用哈希表统计频率，再维护大小为 `k` 的小顶堆。堆里放：
+
+```python
+(freq, num)
+```
+
+`heapq` 会先按 `freq` 比较，频率相同再比较 `num`。
+
+模板：
+
+```python
+count = {}
+
+for num in nums:
+    count[num] = count.get(num, 0) + 1
+
+heap = []
+
+for num, freq in count.items():
+    heapq.heappush(heap, (freq, num))
+
+    if len(heap) > k:
+        heapq.heappop(heap)
+
+return [num for freq, num in heap]
+```
+
+复杂度：
+
+```text
+时间复杂度：O(n log k)
+空间复杂度：O(n)
+```
+
+也可以用桶排序做到 `O(n)`。
+
+## 十四、刷题时如何判断用哪类方法
 
 | 题目关键词 | 优先考虑 |
 |---|---|
@@ -1835,8 +2327,17 @@ j 是列下标，用 n 判断
 | 二叉搜索树第 k 小 | 中序遍历 |
 | 有序数组构造平衡 BST | 取中点递归 |
 | 网格连通块/岛屿数量 | DFS/BFS + visited |
+| 多起点同时扩散/最少分钟数 | 多源 BFS |
+| 排列/子集/组合枚举 | 回溯 |
+| 有序数组查找 | 二分查找 |
+| 查找第一个/最后一个位置 | 边界二分 |
+| 旋转有序数组查找 | 找旋转点或判断有序半边 |
+| 括号嵌套/字符串解码 | 栈 |
+| 常数时间获取栈内最小值 | 辅助栈 |
+| 第 k 大/Top K | 小顶堆 |
+| 高频元素前 k 个 | 哈希表计数 + 堆/桶 |
 
-## 十一、复杂度速查
+## 十五、复杂度速查
 
 | 方法 | 常见时间复杂度 | 常见空间复杂度 |
 |---|---|---|
@@ -1857,3 +2358,11 @@ j 是列下标，用 n 判断
 | 二叉树 BFS | `O(n)` | `O(n)` |
 | BST 中序遍历 | `O(n)` | `O(h)` 到 `O(n)` |
 | 网格 DFS/BFS | `O(mn)` | `O(mn)` |
+| 多源 BFS | `O(mn)` | `O(mn)` |
+| 回溯全排列 | `O(n * n!)` | `O(n)` 不算返回结果 |
+| 回溯子集 | `O(n * 2^n)` | `O(n)` 不算返回结果 |
+| 二分查找 | `O(log n)` | `O(1)` |
+| 矩阵二分 | `O(log(mn))` | `O(1)` |
+| 栈模拟 | `O(n)` | `O(n)` |
+| 辅助栈操作 | `O(1)` | `O(n)` |
+| 大小为 k 的小顶堆 | `O(n log k)` | `O(k)` |
